@@ -202,7 +202,7 @@ struct Elf32_Phdr
 #define PF_R 4          /* Readable. */
 
 // Used for setup_stack
-#define WORD_SIZE 8
+#define WORD_SIZE 4
 #define DEFAULT_ARGV 2
 
 static bool setup_stack (void **esp, const char* file_name,
@@ -477,7 +477,7 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
       memcpy(*esp, token, strlen(token) + 1);
     }
   argv[argc] = 0;
-  // Align to word size (8 bytes)
+  // Align to word size (4 bytes)
   i = (size_t) *esp % WORD_SIZE;
   if (i)
     {
@@ -490,6 +490,10 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
       *esp -= sizeof(char *);
       memcpy(*esp, &argv[i], sizeof(char *));
     }
+  // Push argv
+  token = *esp;
+  *esp -= sizeof(char **);
+  memcpy(*esp, &token, sizeof(char **));
   // Push argc
   *esp -= sizeof(int);
   memcpy(*esp, &argc, sizeof(int));
