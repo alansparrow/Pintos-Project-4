@@ -100,6 +100,10 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    // Needed for file system sys calls
+    struct list file_list;
+    int fd;
   };
 
 /* If false (default), use round-robin scheduler.
