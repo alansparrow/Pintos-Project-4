@@ -129,17 +129,16 @@ void halt (void)
 
 void exit (int status)
 {
-  struct thread *parent = thread_exists(thread_current()->parent);
-  if (parent)
+  struct thread *cur = thread_current();
+  bool exists = thread_alive(cur->parent);
+  if (exists)
     {
-      struct child_process *cp = get_child_process(thread_current()->tid);
-      if (cp->wait)
+      if (cur->cp->wait)
 	{
-	  cp->status = status;
-	  // release wait lock
+	  cur->cp->status = status;
 	}
     }
-  printf ("%s: exit(%d)\n", thread_current()->name, status);
+  printf ("%s: exit(%d)\n", cur->name, status);
   thread_exit();
 }
 
@@ -149,12 +148,11 @@ pid_t exec (const char *cmd_line)
   struct child_process* cp = get_child_process(pid);
   if (!cp)
     {
-      // pid not found in child list
       return ERROR;
     }
   while (cp->load == NOT_LOADED)
     {
-      // block thread
+      barrier();
     }
   if (cp->load == LOAD_FAIL)
     {
@@ -352,6 +350,58 @@ void process_close_file (int fd)
 	      return;
 	    }
 	}
+      e = next;
+    }
+}
+
+struct child_process* add_child_process (int pid)
+{
+  struct child_process* cp = malloc(sizeof(struct child_process));
+  cp->pid = pid;
+  cp->load = NOT_LOADED;
+  cp->wait = false;
+  cp->exit = false;
+  lock_init(&cp->wait_lock);
+  list_push_back(&thread_current()->child_list,
+		 &cp->elem);
+  return cp;
+}
+
+struct child_process* get_child_process (int pid)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+
+  for (e = list_begin (&t->child_list); e != list_end (&t->child_list);
+       e = list_next (e))
+        {
+          struct child_process *cp = list_entry (e, struct child_process, elem);
+          if (pid == cp->pid)
+	    {
+	      return cp;
+	    }
+        }
+  return NULL;
+}
+
+void remove_child_process (struct child_process *cp)
+{
+  list_remove(&cp->elem);
+  free(cp);
+}
+
+void remove_child_processes (void)
+{
+  struct thread *t = thread_current();
+  struct list_elem *next, *e = list_begin(&t->child_list);
+
+  while (e != list_end (&t->child_list))
+    {
+      next = list_next(e);
+      struct child_process *cp = list_entry (e, struct child_process,
+					     elem);
+      list_remove(&cp->elem);
+      free(cp);
       e = next;
     }
 }

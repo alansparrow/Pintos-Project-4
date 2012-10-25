@@ -69,13 +69,12 @@ start_process (void *file_name_)
   success = load (file_name, &if_.eip, &if_.esp, &save_ptr);
   if (success)
     {
-      // load is LOAD_SUCCESS
+      thread_current()->cp->load = LOAD_SUCCESS;
     }
   else
     {
-      // load is LOAD_FAIL
+      thread_current()->cp->load = LOAD_FAIL;
     }
-  // Unblock parent thread if already blocked
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -113,12 +112,13 @@ process_wait (tid_t child_tid UNUSED)
     {
       return ERROR;
     }
+  cp->wait = true;
   while (!cp->exit)
     {
-      lock_acquire(&cp->wait_lock);
+      barrier();
     }
   int status = cp->status;
-  remove_child_process(child_tid);
+  remove_child_process(cp);
   return status;
 }
 
@@ -133,7 +133,13 @@ process_exit (void)
   process_close_file(CLOSE_ALL);
 
   // Free child list
-  remove_child_process(CLOSE_ALL);
+  remove_child_processes();
+
+  // Set exit value to true in case killed by the kernel
+  if (thread_alive(cur->parent))
+    {
+      cur->cp->exit = true;
+    }
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -533,9 +539,6 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
   memcpy(*esp, &argv[argc], sizeof(void *));
   // Free argv
   free(argv);
-
-  // Use for debugging
-  hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
 
   return success;
 }

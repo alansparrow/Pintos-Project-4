@@ -23,6 +23,7 @@
 #define THREAD_MAGIC 0xcd6abf4b
 
 #define MIN_FD 2
+#define NO_PARENT -1
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
@@ -211,14 +212,9 @@ thread_create (const char *name, int priority,
   intr_set_level (old_level);
 
   // Add child process to child list
-  struct child_process* cp = malloc(sizeof(struct child_process));
-  cp->pid = t->tid;
-  cp->load = NOT_LOADED;
-  cp->wait = false;
-  cp->exit = false;
-  lock_init(&cp->wait_lock);
-  list_push_back(&thread_current()->child_list,
-		 &cp->elem);
+  t->parent = thread_tid();
+  struct child_process *cp = add_child_process(t->tid);
+  t->cp = cp;
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -489,7 +485,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->fd = MIN_FD;
 
   list_init(&t->child_list);
-  t->parent = thread_current()->tid;
+  t->cp = NULL;
+  t->parent = NO_PARENT;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -605,3 +602,19 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+bool thread_alive (int pid)
+{
+  struct list_elem *e;
+
+  for (e = list_begin (&all_list); e != list_end (&all_list);
+       e = list_next (e))
+    {
+      struct thread *t = list_entry (e, struct thread, allelem);
+      if (t->tid == pid)
+	{
+	  return true;
+	}
+    }
+  return false;
+}
