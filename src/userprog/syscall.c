@@ -14,8 +14,8 @@
 #include "userprog/pagedir.h"
 #include "userprog/process.h"
 
-#define MAX_ARGS 4
-
+#define MAX_ARGS 3
+#define USER_VADDR_BOTTOM ((void *) 0x08048000)
 struct lock filesys_lock;
 
 struct process_file {
@@ -29,6 +29,8 @@ struct file* process_get_file (int fd);
 
 static void syscall_handler (struct intr_frame *);
 int user_to_kernel_ptr(const void *vaddr);
+void get_arg (struct intr_frame *f, int *arg, int n);
+void check_valid_ptr (const void *vaddr);
 
 void
 syscall_init (void) 
@@ -40,12 +42,9 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  int i, arg[MAX_ARGS];
-  for (i = 0; i < MAX_ARGS; i++)
-    {
-      arg[i] = * ((int *) f->esp + i);
-    }
-  switch (arg[0])
+  int arg[MAX_ARGS];
+  check_valid_ptr((const void*) f->esp);
+  switch (* (int *) f->esp)
     {
     case SYS_HALT:
       {
@@ -54,71 +53,83 @@ syscall_handler (struct intr_frame *f UNUSED)
       }
     case SYS_EXIT:
       {
-	exit(arg[1]);
+	get_arg(f, &arg[0], 1);
+	exit(arg[0]);
 	break;
       }
     case SYS_EXEC:
       {
-	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
-	f->eax = exec((const char *) arg[1]); 
+	get_arg(f, &arg[0], 1);
+	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
+	f->eax = exec((const char *) arg[0]); 
 	break;
       }
     case SYS_WAIT:
       {
-	f->eax = wait(arg[1]);
+	get_arg(f, &arg[0], 1);
+	f->eax = wait(arg[0]);
 	break;
       }
     case SYS_CREATE:
       {
-	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
-	f->eax = create((const char *)arg[1], (unsigned) arg[2]);
+	get_arg(f, &arg[0], 2);
+	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
+	f->eax = create((const char *)arg[0], (unsigned) arg[1]);
 	break;
       }
     case SYS_REMOVE:
       {
-	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
-	f->eax = remove((const char *) arg[1]);
+	get_arg(f, &arg[0], 1);
+	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
+	f->eax = remove((const char *) arg[0]);
 	break;
       }
     case SYS_OPEN:
       {
-	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
-	f->eax = open((const char *) arg[1]);
+	get_arg(f, &arg[0], 1);
+	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
+	f->eax = open((const char *) arg[0]);
 	break; 		
       }
     case SYS_FILESIZE:
       {
-	f->eax = filesize(arg[1]);
+	get_arg(f, &arg[0], 1);
+	f->eax = filesize(arg[0]);
 	break;
       }
     case SYS_READ:
       {
-	arg[2] = user_to_kernel_ptr((const void *) arg[2]);
-	f->eax = read(arg[1], (void *) arg[2], (unsigned) arg[3]);
+	get_arg(f, &arg[0], 3);
+	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
+	f->eax = read(arg[0], (void *) arg[1], (unsigned) arg[2]);
 	break;
       }
     case SYS_WRITE:
       { 
-	arg[2] = user_to_kernel_ptr((const void *) arg[2]);
-	f->eax = write(arg[1], (const void *) arg[2],
-		       (unsigned) arg[3]);
+	get_arg(f, &arg[0], 3);
+	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
+	f->eax = write(arg[0], (const void *) arg[1],
+		       (unsigned) arg[2]);
 	break;
       }
     case SYS_SEEK:
       {
-	seek(arg[1], (unsigned) arg[2]);
+	get_arg(f, &arg[0], 2);
+	seek(arg[0], (unsigned) arg[1]);
 	break;
       } 
     case SYS_TELL:
       { 
-	f->eax = tell(arg[1]);
+	get_arg(f, &arg[0], 1);
+	f->eax = tell(arg[0]);
 	break;
       }
     case SYS_CLOSE:
       { 
-	close(arg[1]);
+	get_arg(f, &arg[0], 1);
+	close(arg[0]);
 	break;
-      } 
+      }
     }
 }
 
@@ -280,19 +291,23 @@ void close (int fd)
   lock_release(&filesys_lock);
 }
 
+void check_valid_ptr (const void *vaddr)
+{
+  if (!is_user_vaddr(vaddr) || vaddr < USER_VADDR_BOTTOM)
+    {
+      exit(ERROR);
+    }
+}
+
 int user_to_kernel_ptr(const void *vaddr)
 {
   // TO DO: Need to check if all bytes within range are correct
-  if (!is_user_vaddr(vaddr))
-    {
-      thread_exit();
-      return 0;
-    }
+  // for strings + buffers
+  check_valid_ptr(vaddr);
   void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
   if (!ptr)
     {
-      thread_exit();
-      return 0;
+      exit(ERROR);
     }
   return (int) ptr;
 }
@@ -396,5 +411,17 @@ void remove_child_processes (void)
       list_remove(&cp->elem);
       free(cp);
       e = next;
+    }
+}
+
+void get_arg (struct intr_frame *f, int *arg, int n)
+{
+  int i;
+  int *ptr;
+  for (i = 0; i < n; i++)
+    {
+      ptr = (int *) f->esp + i + 1;
+      check_valid_ptr((const void *) ptr);
+      arg[i] = *ptr;
     }
 }
