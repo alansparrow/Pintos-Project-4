@@ -130,13 +130,9 @@ void halt (void)
 void exit (int status)
 {
   struct thread *cur = thread_current();
-  bool exists = thread_alive(cur->parent);
-  if (exists)
+  if (thread_alive(cur->parent))
     {
-      if (cur->cp->wait)
-	{
-	  cur->cp->status = status;
-	}
+      cur->cp->status = status;
     }
   printf ("%s: exit(%d)\n", cur->name, status);
   thread_exit();
@@ -146,10 +142,7 @@ pid_t exec (const char *cmd_line)
 {
   pid_t pid = process_execute(cmd_line);
   struct child_process* cp = get_child_process(pid);
-  if (!cp)
-    {
-      return ERROR;
-    }
+  ASSERT(cp);
   while (cp->load == NOT_LOADED)
     {
       barrier();
