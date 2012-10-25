@@ -16,6 +16,7 @@
 
 #define MAX_ARGS 3
 #define USER_VADDR_BOTTOM ((void *) 0x08048000)
+
 struct lock filesys_lock;
 
 struct process_file {
@@ -31,6 +32,7 @@ static void syscall_handler (struct intr_frame *);
 int user_to_kernel_ptr(const void *vaddr);
 void get_arg (struct intr_frame *f, int *arg, int n);
 void check_valid_ptr (const void *vaddr);
+void check_valid_buffer (void* buffer, unsigned size);
 
 void
 syscall_init (void) 
@@ -100,6 +102,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_READ:
       {
 	get_arg(f, &arg[0], 3);
+	check_valid_buffer((void *) arg[1], (unsigned) arg[2]);
 	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
 	f->eax = read(arg[0], (void *) arg[1], (unsigned) arg[2]);
 	break;
@@ -107,6 +110,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_WRITE:
       { 
 	get_arg(f, &arg[0], 3);
+	check_valid_buffer((void *) arg[1], (unsigned) arg[2]);
 	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
 	f->eax = write(arg[0], (const void *) arg[1],
 		       (unsigned) arg[2]);
@@ -423,5 +427,16 @@ void get_arg (struct intr_frame *f, int *arg, int n)
       ptr = (int *) f->esp + i + 1;
       check_valid_ptr((const void *) ptr);
       arg[i] = *ptr;
+    }
+}
+
+void check_valid_buffer (void* buffer, unsigned size)
+{
+  unsigned i;
+  char* local_buffer = (char *) buffer;
+  for (i = 0; i < size; i++)
+    {
+      check_valid_ptr((const void*) local_buffer);
+      local_buffer++;
     }
 }
