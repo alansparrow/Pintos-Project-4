@@ -104,6 +104,10 @@ struct thread
     // Needed for file system sys calls
     struct list file_list;
     int fd;
+
+    // Needed for wait / exec sys calls
+    struct list child_list;
+    tid_t parent;
   };
 
 /* If false (default), use round-robin scheduler.

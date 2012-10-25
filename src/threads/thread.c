@@ -7,12 +7,14 @@
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
+#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #ifdef USERPROG
 #include "userprog/process.h"
+#include "userprog/syscall.h"
 #endif
 
 /* Random value for struct thread's `magic' member.
@@ -207,6 +209,16 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level (old_level);
+
+  // Add child process to child list
+  struct child_process* cp = malloc(sizeof(struct child_process));
+  cp->pid = t->tid;
+  cp->load = NOT_LOADED;
+  cp->wait = false;
+  cp->exit = false;
+  lock_init(&cp->wait_lock);
+  list_push_back(&thread_current()->child_list,
+		 &cp->elem);
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -475,6 +487,9 @@ init_thread (struct thread *t, const char *name, int priority)
 
   list_init(&t->file_list);
   t->fd = MIN_FD;
+
+  list_init(&t->child_list);
+  t->parent = thread_current()->tid;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

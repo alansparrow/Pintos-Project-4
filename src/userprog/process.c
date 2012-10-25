@@ -44,7 +44,7 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
   return tid;
 }
 
@@ -67,6 +67,15 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp, &save_ptr);
+  if (success)
+    {
+      // load is LOAD_SUCCESS
+    }
+  else
+    {
+      // load is LOAD_FAIL
+    }
+  // Unblock parent thread if already blocked
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -95,7 +104,22 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  struct child_process* cp = get_child_process(child_tid);
+  if (!cp)
+    {
+      return ERROR;
+    }
+  if (cp->wait)
+    {
+      return ERROR;
+    }
+  while (!cp->exit)
+    {
+      lock_acquire(&cp->wait_lock);
+    }
+  int status = cp->status;
+  remove_child_process(child_tid);
+  return status;
 }
 
 /* Free the current process's resources. */
@@ -107,6 +131,9 @@ process_exit (void)
 
   // Close all files opened by process
   process_close_file(CLOSE_ALL);
+
+  // Free child list
+  remove_child_process(CLOSE_ALL);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */

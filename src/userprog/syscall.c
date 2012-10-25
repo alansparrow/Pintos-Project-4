@@ -15,7 +15,7 @@
 #include "userprog/process.h"
 
 #define MAX_ARGS 4
-#define ERROR -1
+
 struct lock filesys_lock;
 
 struct process_file {
@@ -129,6 +129,16 @@ void halt (void)
 
 void exit (int status)
 {
+  struct thread *parent = thread_exists(thread_current()->parent);
+  if (parent)
+    {
+      struct child_process *cp = get_child_process(thread_current()->tid);
+      if (cp->wait)
+	{
+	  cp->status = status;
+	  // release wait lock
+	}
+    }
   printf ("%s: exit(%d)\n", thread_current()->name, status);
   thread_exit();
 }
@@ -136,8 +146,20 @@ void exit (int status)
 pid_t exec (const char *cmd_line)
 {
   pid_t pid = process_execute(cmd_line);
-  // Wait for pid to complete load here
-  // If not successful, return -1
+  struct child_process* cp = get_child_process(pid);
+  if (!cp)
+    {
+      // pid not found in child list
+      return ERROR;
+    }
+  while (cp->load == NOT_LOADED)
+    {
+      // block thread
+    }
+  if (cp->load == LOAD_FAIL)
+    {
+      return ERROR;
+    }
   return pid;
 }
 
