@@ -110,6 +110,9 @@ struct thread
     tid_t parent;
     // Points to child_process struct in parent's child list
     struct child_process* cp;
+
+    // Needed for denying writes to executables
+    struct file* executable;
   };
 
 /* If false (default), use round-robin scheduler.

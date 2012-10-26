@@ -481,6 +481,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
+  t->executable = NULL;
+
   list_init(&t->file_list);
   t->fd = MIN_FD;
 
