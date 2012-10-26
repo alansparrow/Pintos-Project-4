@@ -308,6 +308,7 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
+  release_locks();
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
   schedule ();
@@ -483,6 +484,8 @@ init_thread (struct thread *t, const char *name, int priority)
 
   t->executable = NULL;
 
+  list_init(&t->lock_list);
+
   list_init(&t->file_list);
   t->fd = MIN_FD;
 
@@ -619,4 +622,19 @@ bool thread_alive (int pid)
 	}
     }
   return false;
+}
+
+void release_locks (void)
+{
+  struct thread *t = thread_current();
+  struct list_elem *next, *e = list_begin(&t->lock_list);
+
+  while (e != list_end (&t->lock_list))
+    {
+      next = list_next(e);
+      struct lock *l = list_entry (e, struct lock, elem);
+      lock_release(l);
+      list_remove(&l->elem);
+      e = next;
+    }
 }
