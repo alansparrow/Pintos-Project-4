@@ -101,6 +101,9 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
+    // Needed to keep track of locks thread holds
+    struct list lock_list;
+
     // Needed for file system sys calls
     struct list file_list;
     int fd;
@@ -152,5 +155,6 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 bool thread_alive (int pid);
+void release_locks (void);
 
 #endif /* threads/thread.h */

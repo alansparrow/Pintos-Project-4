@@ -510,6 +510,10 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
 
   char *token;
   char **argv = malloc(DEFAULT_ARGV*sizeof(char *));
+  if (!argv)
+    {
+      return false;
+    }
   int i, argc = 0, argv_size = DEFAULT_ARGV;
 
   // Push args onto stack
@@ -524,6 +528,10 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
 	{
 	  argv_size *= 2;
 	  argv = realloc(argv, argv_size*sizeof(char *));
+	  if (!argv)
+	    {
+	      return false;
+	    }
 	}
       memcpy(*esp, token, strlen(token) + 1);
     }
