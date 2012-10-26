@@ -145,7 +145,7 @@ void halt (void)
 void exit (int status)
 {
   struct thread *cur = thread_current();
-  if (thread_alive(cur->parent))
+  if (thread_alive(cur->parent) && cur->cp)
     {
       cur->cp->status = status;
     }
@@ -157,7 +157,10 @@ pid_t exec (const char *cmd_line)
 {
   pid_t pid = process_execute(cmd_line);
   struct child_process* cp = get_child_process(pid);
-  ASSERT(cp);
+  if (!cp)
+    {
+      return ERROR;
+    }
   if (cp->load == NOT_LOADED)
     {
       sema_down(&cp->load_sema);
@@ -319,6 +322,10 @@ int user_to_kernel_ptr(const void *vaddr)
 int process_add_file (struct file *f)
 {
   struct process_file *pf = malloc(sizeof(struct process_file));
+  if (!pf)
+    {
+      return ERROR;
+    }
   pf->file = f;
   pf->fd = thread_current()->fd;
   thread_current()->fd++;
@@ -369,6 +376,10 @@ void process_close_file (int fd)
 struct child_process* add_child_process (int pid)
 {
   struct child_process* cp = malloc(sizeof(struct child_process));
+  if (!cp)
+    {
+      return NULL;
+    }
   cp->pid = pid;
   cp->load = NOT_LOADED;
   cp->wait = false;

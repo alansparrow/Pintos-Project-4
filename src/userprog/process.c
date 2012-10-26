@@ -141,7 +141,7 @@ process_exit (void)
   remove_child_processes();
 
   // Set exit value to true in case killed by the kernel
-  if (thread_alive(cur->parent))
+  if (thread_alive(cur->parent) && cur->cp)
     {
       cur->cp->exit = true;
       sema_up(&cur->cp->exit_sema);
