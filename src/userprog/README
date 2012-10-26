@@ -282,8 +282,8 @@ a value of 0. Thus, it does not matter which order P and C reach this
 semaphore.
 
 If P calls wait before C exits, it sees the exit flag is false for the
-child and downs the semaphore until C sets the exit flag to true and ups
-the semaphore. If P calls wait after, the exit flag is true, so the
+child and gets added to the semaphore's waiting list until C sets the exit flag to true and ups
+the semaphore, thereby waking the parent. If P calls wait after, the exit flag is true, so the
 semaphore is not downed. The resources that must be freed are the
 child_process structs in the parent's child_list. Similar to Linux, these
 structs are freed once a parent process completes a wait for its child
