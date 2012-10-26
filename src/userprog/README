@@ -212,7 +212,7 @@ The process, given a child pid, searches its child process list for a
 process with the pid. If it doesn't exist (i.e. if the pid is not a child
 of the current process or the pid doesn't exist), -1 is returned. If the
 current process is already waiting on the child, -1 is also
-returned. Otherwise, wait is set to true and the current process waits
+returned. Otherwise, the child process' wait is set to true and the current process waits
 until the child process exits (i.e. releases the one-time semaphore and
 sets the exit flag to true). Then the current process gets the child's
 exit status, removes the child from its child list (since the child thread
