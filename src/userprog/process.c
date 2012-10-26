@@ -79,6 +79,7 @@ start_process (void *file_name_)
     {
       thread_current()->cp->load = LOAD_FAIL;
     }
+  sema_up(&thread_current()->cp->load_sema);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -117,9 +118,9 @@ process_wait (tid_t child_tid UNUSED)
       return ERROR;
     }
   cp->wait = true;
-  while (!cp->exit)
+  if (!cp->exit)
     {
-      barrier();
+      sema_down(&cp->exit_sema);
     }
   int status = cp->status;
   remove_child_process(cp);
@@ -143,6 +144,7 @@ process_exit (void)
   if (thread_alive(cur->parent))
     {
       cur->cp->exit = true;
+      sema_up(&cur->cp->exit_sema);
     }
 
   // Close executable

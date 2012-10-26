@@ -16,7 +16,8 @@ struct child_process {
   bool wait;
   bool exit;
   int status;
-  struct lock wait_lock;
+  struct semaphore load_sema;
+  struct semaphore exit_sema;
   struct list_elem elem;
 };
 
