@@ -35,8 +35,8 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   int arg[MAX_ARGS];
-  check_valid_ptr((const void*) f->esp);
-  switch (* (int *) f->esp)
+  int esp = user_to_kernel_ptr((const void*) f->esp);
+  switch (* (int *) esp)
     {
     case SYS_HALT:
       {
