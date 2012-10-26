@@ -28,6 +28,10 @@ no-vm/multi-oom
 It should be noted that wait_killed passes when running it without the -q
 option. However, multi-oom fails in all cases.
 
+The issue seems to be a race condition between threads, but given that the
+wait_killed error does not appear when running GDB and the stack trace of
+the multi-oom is fairly cryptic, we were unable to fix the issue.
+
 			   ARGUMENT PASSING
 			   ================
 
