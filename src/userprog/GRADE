@@ -322,26 +322,7 @@ pass tests/userprog/wait-twice
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32  -Wl,--build-id=none -nostdlib -static -Wl,-T,../../lib/user/user.lds tests/userprog/child-bad.o tests/main.o tests/lib.o lib/user/entry.o libc.a -o tests/userprog/child-bad
 pintos -v -k -T 60 --qemu  --filesys-size=2 -p tests/userprog/wait-killed -a wait-killed -p tests/userprog/child-bad -a child-bad -- -q  -f run wait-killed < /dev/null 2> tests/userprog/wait-killed.errors > tests/userprog/wait-killed.output
 perl -I../.. ../../tests/userprog/wait-killed.ck tests/userprog/wait-killed tests/userprog/wait-killed.result
-FAIL tests/userprog/wait-killed
-Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc0027a3d 0xc002a7e0 0xc002a879 0xc0021838 0xc002193f 0xc002ae5e 0xc0021838 0xc002193f 0x8048081 0x80480c2 0x80485dd
-Translation of call stack:
-In kernel.o:
-0xc0027a3d: debug_panic (.../../lib/kernel/debug.c:38)
-0xc002a7e0: kill (.../userprog/exception.c:106)
-0xc002a879: page_fault (.../userprog/exception.c:160)
-0xc0021838: intr_handler (..../threads/interrupt.c:367)
-0xc002193f: intr_entry (threads/intr-stubs.S:38)
-0xc002ae5e: syscall_handler (.../../userprog/syscall.c:39)
-0xc0021838: intr_handler (..../threads/interrupt.c:367)
-0xc002193f: intr_entry (threads/intr-stubs.S:38)
-In tests/userprog/wait-killed:
-0x08048081: test_main (...userprog/wait-killed.c:10)
-0x080480c2: main (...ild/../../tests/main.c:10)
-0x080485dd: exec_children (...uild/../../tests/lib.c:91)
-Translations of user virtual addresses above are based on a guess at
-the binary to use.  If this guess is incorrect, then those
-translations will be misleading.
+pass tests/userprog/wait-killed
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32 -c ../../tests/userprog/wait-bad-pid.c -o tests/userprog/wait-bad-pid.o -g -msoft-float -O -fno-stack-protector -nostdinc -I../.. -I../../lib -I../../lib/user -I. -Wall -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers  -MMD -MF tests/userprog/wait-bad-pid.d
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32  -Wl,--build-id=none -nostdlib -static -Wl,-T,../../lib/user/user.lds tests/userprog/wait-bad-pid.o tests/main.o tests/lib.o lib/user/entry.o libc.a -o tests/userprog/wait-bad-pid
 pintos -v -k -T 60 --qemu  --filesys-size=2 -p tests/userprog/wait-bad-pid -a wait-bad-pid -- -q  -f run wait-bad-pid < /dev/null 2> tests/userprog/wait-bad-pid.errors > tests/userprog/wait-bad-pid.output
@@ -410,18 +391,7 @@ pass tests/userprog/bad-jump2
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32  -Wl,--build-id=none -nostdlib -static -Wl,-T,../../lib/user/user.lds tests/userprog/no-vm/multi-oom.o tests/lib.o lib/user/entry.o libc.a -o tests/userprog/no-vm/multi-oom
 pintos -v -k -T 360 --qemu  --filesys-size=2 -p tests/userprog/no-vm/multi-oom -a multi-oom -- -q  -f run multi-oom < /dev/null 2> tests/userprog/no-vm/multi-oom.errors > tests/userprog/no-vm/multi-oom.output
 perl -I../.. ../../tests/userprog/no-vm/multi-oom.ck tests/userprog/no-vm/multi-oom tests/userprog/no-vm/multi-oom.result
-FAIL tests/userprog/no-vm/multi-oom
-Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc0027a3d 0xc002a7e0 0xc002a879 0xc0021838 0xc002193f 0xc0027070 0xc0029e00 0xc002112f
-Translation of call stack:
-0xc0027a3d: debug_panic (.../../lib/kernel/debug.c:38)
-0xc002a7e0: kill (.../userprog/exception.c:106)
-0xc002a879: page_fault (.../userprog/exception.c:160)
-0xc0021838: intr_handler (..../threads/interrupt.c:367)
-0xc002193f: intr_entry (threads/intr-stubs.S:38)
-0xc0027070: memcpy (...ild/../../lib/string.c:16)
-0xc0029e00: start_process (...../userprog/process.c:521)
-0xc002112f: kernel_thread (..../../threads/thread.c:444)
+pass tests/userprog/no-vm/multi-oom
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32 -c ../../tests/filesys/base/lg-create.c -o tests/filesys/base/lg-create.o -g -msoft-float -O -fno-stack-protector -nostdinc -I../.. -I../../lib -I../../lib/user -I. -Wall -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers  -MMD -MF tests/filesys/base/lg-create.d
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32 -c ../../tests/filesys/seq-test.c -o tests/filesys/seq-test.o -g -msoft-float -O -fno-stack-protector -nostdinc -I../.. -I../../lib -I../../lib/user -I. -Wall -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers  -MMD -MF tests/filesys/seq-test.d
 /usr/class/cs140/x86_64/bin/i586-elf-gcc -m32  -Wl,--build-id=none -nostdlib -static -Wl,-T,../../lib/user/user.lds tests/filesys/base/lg-create.o tests/lib.o tests/filesys/seq-test.o tests/main.o lib/user/entry.o libc.a -o tests/filesys/base/lg-create
@@ -493,7 +463,8 @@ pintos -v -k -T 60 --qemu  --filesys-size=2 -p tests/filesys/base/syn-write -a s
 perl -I../.. ../../tests/filesys/base/syn-write.ck tests/filesys/base/syn-write tests/filesys/base/syn-write.result
 pass tests/filesys/base/syn-write
 ../../tests/make-grade ../.. results ../../tests/userprog/Grading | tee grade
-TOTAL TESTING SCORE: 88.6%
+TOTAL TESTING SCORE: 100.0%
+ALL TESTED PASSED -- PERFECT SCORE
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -502,11 +473,11 @@ SUMMARY BY TEST SET
 Test Set                                      Pts Max  % Ttl  % Max
 --------------------------------------------- --- --- ------ ------
 tests/userprog/Rubric.functionality           108/108  35.0%/ 35.0%
-tests/userprog/Rubric.robustness               83/ 88  23.6%/ 25.0%
-tests/userprog/no-vm/Rubric                     0/  1   0.0%/ 10.0%
+tests/userprog/Rubric.robustness               88/ 88  25.0%/ 25.0%
+tests/userprog/no-vm/Rubric                     1/  1  10.0%/ 10.0%
 tests/filesys/base/Rubric                      30/ 30  30.0%/ 30.0%
 --------------------------------------------- --- --- ------ ------
-Total                                                  88.6%/100.0%
+Total                                                 100.0%/100.0%
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
@@ -608,7 +579,7 @@ Robustness of system calls (tests/userprog/Rubric.robustness):
 	- Test robustness of "exec" and "wait" system calls.
 	     5/ 5 tests/userprog/exec-missing
 	     5/ 5 tests/userprog/wait-bad-pid
-	  ** 0/ 5 tests/userprog/wait-killed
+	     5/ 5 tests/userprog/wait-killed
 
 	- Test robustness of exception handling.
 	     1/ 1 tests/userprog/bad-read
@@ -619,16 +590,16 @@ Robustness of system calls (tests/userprog/Rubric.robustness):
 	     1/ 1 tests/userprog/bad-jump2
 
 	- Section summary.
-	     33/ 34 tests passed
-	     83/ 88 points subtotal
+	     34/ 34 tests passed
+	     88/ 88 points subtotal
 
 Functionality of features that VM might break (tests/userprog/no-vm/Rubric):
 
-	  ** 0/ 1 tests/userprog/no-vm/multi-oom
+	     1/ 1 tests/userprog/no-vm/multi-oom
 
 	- Section summary.
-	      0/  1 tests passed
-	      0/  1 points subtotal
+	      1/  1 tests passed
+	      1/  1 points subtotal
 
 Functionality of base file system (tests/filesys/base/Rubric):
 	- Test basic support for small files.
@@ -654,419 +625,4 @@ Functionality of base file system (tests/filesys/base/Rubric):
 	     13/ 13 tests passed
 	     30/ 30 points subtotal
 
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-DETAILS OF tests/userprog/wait-killed FAILURE:
-
-Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc0027a3d 0xc002a7e0 0xc002a879 0xc0021838 0xc002193f 0xc002ae5e 0xc0021838 0xc002193f 0x8048081 0x80480c2 0x80485dd
-Translation of call stack:
-In kernel.o:
-0xc0027a3d: debug_panic (.../../lib/kernel/debug.c:38)
-0xc002a7e0: kill (.../userprog/exception.c:106)
-0xc002a879: page_fault (.../userprog/exception.c:160)
-0xc0021838: intr_handler (..../threads/interrupt.c:367)
-0xc002193f: intr_entry (threads/intr-stubs.S:38)
-0xc002ae5e: syscall_handler (.../../userprog/syscall.c:39)
-0xc0021838: intr_handler (..../threads/interrupt.c:367)
-0xc002193f: intr_entry (threads/intr-stubs.S:38)
-In tests/userprog/wait-killed:
-0x08048081: test_main (...userprog/wait-killed.c:10)
-0x080480c2: main (...ild/../../tests/main.c:10)
-0x080485dd: exec_children (...uild/../../tests/lib.c:91)
-Translations of user virtual addresses above are based on a guess at
-the binary to use.  If this guess is incorrect, then those
-translations will be misleading.
-
-OUTPUT FROM tests/userprog/wait-killed:
-
-Copying tests/userprog/wait-killed to scratch partition...
-Copying tests/userprog/child-bad to scratch partition...
-qemu -hda /tmp/n0e0t4XNvc.dsk -m 4 -net none -nographic -monitor null
-PiLo hda1
-Loading........
-Kernel command line: -q -f extract run wait-killed
-Pintos booting with 4,096 kB RAM...
-383 pages available in kernel pool.
-383 pages available in user pool.
-Calibrating timer...  157,081,600 loops/s.
-hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
-hda1: 139 sectors (69 kB), Pintos OS kernel (20)
-hda2: 4,096 sectors (2 MB), Pintos file system (21)
-hda3: 178 sectors (89 kB), Pintos scratch (22)
-filesys: using hda2
-scratch: using hda3
-Formatting file system...done.
-Boot complete.
-Extracting ustar archive from scratch device into file system...
-Putting 'wait-killed' into the file system...
-Putting 'child-bad' into the file system...
-Erasing ustar archive...
-Executing 'wait-killed':
-(wait-killed) begin
-(child-bad) begin
-Page fault at 0x20101234: not present error reading page in kernel context.
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc002ae5e
- cr2=20101234 error=00000000
- eax=20101234 ebx=c010efb0 ecx=00000030 edx=0000000e
- esi=c010efb0 edi=00000000 esp=bfffffec ebp=c010ef84
- cs=0008 ds=0010 es=0010 ss=9009
-Kernel PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc0027a3d 0xc002a7e0 0xc002a879 0xc0021838 0xc002193f 0xc002ae5e 0xc0021838 0xc002193f 0x8048081 0x80480c2 0x80485dd.
-The `backtrace' program can make call stacks useful.
-Read "Backtraces" in the "Debugging Tools" chapter
-of the Pintos documentation for more information.
-Timer: 54 ticks
-Thread: 0 idle ticks, 53 kernel ticks, 1 user ticks
-hda2 (filesys): 112 reads, 362 writes
-hda3 (scratch): 177 reads, 2 writes
-Console: 1577 characters output
-Keyboard: 0 keys pressed
-Exception: 1 page faults
-Powering off...
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-DETAILS OF tests/userprog/no-vm/multi-oom FAILURE:
-
-Kernel panic in run: PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc0027a3d 0xc002a7e0 0xc002a879 0xc0021838 0xc002193f 0xc0027070 0xc0029e00 0xc002112f
-Translation of call stack:
-0xc0027a3d: debug_panic (.../../lib/kernel/debug.c:38)
-0xc002a7e0: kill (.../userprog/exception.c:106)
-0xc002a879: page_fault (.../userprog/exception.c:160)
-0xc0021838: intr_handler (..../threads/interrupt.c:367)
-0xc002193f: intr_entry (threads/intr-stubs.S:38)
-0xc0027070: memcpy (...ild/../../lib/string.c:16)
-0xc0029e00: start_process (...../userprog/process.c:521)
-0xc002112f: kernel_thread (..../../threads/thread.c:444)
-
-OUTPUT FROM tests/userprog/no-vm/multi-oom:
-
-Copying tests/userprog/no-vm/multi-oom to scratch partition...
-qemu -hda /tmp/r7cMVHbgKF.dsk -m 4 -net none -nographic -monitor null
-PiLo hda1
-Loading........
-Kernel command line: -q -f extract run multi-oom
-Pintos booting with 4,096 kB RAM...
-383 pages available in kernel pool.
-383 pages available in user pool.
-Calibrating timer...  157,081,600 loops/s.
-hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
-hda1: 139 sectors (69 kB), Pintos OS kernel (20)
-hda2: 4,096 sectors (2 MB), Pintos file system (21)
-hda3: 103 sectors (51 kB), Pintos scratch (22)
-filesys: using hda2
-scratch: using hda3
-Formatting file system...done.
-Boot complete.
-Extracting ustar archive from scratch device into file system...
-Putting 'multi-oom' into the file system...
-Erasing ustar archive...
-Executing 'multi-oom':
-(multi-oom) begin
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=a73db9f4 ecx=cccccccd edx=a73db9f2
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=1285c261 ecx=cccccccd edx=1285c25f
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480e1
- cr2=00000000 error=00000006
- eax=00000000 ebx=5fe68ecb ecx=cccccccd edx=5fe68ecb
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=7b0ead1c ecx=cccccccd edx=7b0ead19
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=44d9b7df ecx=cccccccd edx=44d9b7de
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=5518edf1 ecx=cccccccd edx=5518edef
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=914cd31e ecx=cccccccd edx=914cd31c
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=df225b81 ecx=cccccccd edx=df225b7f
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=d61f9421 ecx=cccccccd edx=d61f9420
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=d35bd954 ecx=cccccccd edx=d35bd951
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=781c50e4 ecx=cccccccd edx=781c50e3
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=1669da10 ecx=cccccccd edx=1669da0f
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=a9b17537 ecx=cccccccd edx=a9b17534
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=7c730a08 ecx=cccccccd edx=7c730a06
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=a9616da1 ecx=cccccccd edx=a9616da0
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480e1
- cr2=00000000 error=00000006
- eax=00000000 ebx=f4a478ed ecx=cccccccd edx=f4a478ed
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=5bba4177 ecx=cccccccd edx=5bba4176
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=f737833f ecx=cccccccd edx=f737833e
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=f47150d6 ecx=cccccccd edx=f47150d5
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=e970177d ecx=cccccccd edx=e970177a
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=fcf35a3a ecx=cccccccd edx=fcf35a37
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=727aa97b ecx=cccccccd edx=727aa978
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0: not present error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480e1
- cr2=00000000 error=00000006
- eax=00000000 ebx=42e7a251 ecx=cccccccd edx=42e7a251
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=c75a0756 ecx=cccccccd edx=c75a0754
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=cda21275 ecx=cccccccd edx=cda21273
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=a8fca93e ecx=cccccccd edx=a8fca93d
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=9178f01c ecx=cccccccd edx=9178f019
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=311f5fce ecx=cccccccd edx=311f5fcd
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-multi-oom: exit(-1)
-Page fault at 0: not present error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480e1
- cr2=00000000 error=00000006
- eax=00000000 ebx=f107ff7f ecx=cccccccd edx=f107ff7f
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=91917b30 ecx=cccccccd edx=91917b2f
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0: not present error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480eb
- cr2=00000000 error=00000004
- eax=00000001 ebx=7e49a0ca ecx=cccccccd edx=7e49a0c9
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error writing page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f9
- cr2=c0000000 error=00000007
- eax=00000003 ebx=7fbd9c5b ecx=cccccccd edx=7fbd9c58
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=e919c278 ecx=cccccccd edx=e919c276
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xc0000000: rights violation error reading page in user context.
-multi-oom: dying due to interrupt 0x0e (#PF Page-Fault Exception).
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0x80480f2
- cr2=c0000000 error=00000005
- eax=00000002 ebx=2dbc7bfb ecx=cccccccd edx=2dbc7bf9
- esi=bffffff3 edi=0804a63f esp=bfffff60 ebp=bfffff78
- cs=001b ds=0023 es=0023 ss=0023
-multi-oom: exit(-1)
-Page fault at 0xfffffff6: not present error writing page in kernel context.
-Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc0027070
- cr2=fffffff6 error=00000002
- eax=0000006d ebx=0000000a ecx=c0109000 edx=00000000
- esi=fffffff6 edi=fffffff6 esp=00000006 ebp=c0207ed0
- cs=0008 ds=0010 es=0010 ss=2ab8
-Kernel PANIC at ../../userprog/exception.c:101 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0xc0027a3d 0xc002a7e0 0xc002a879 0xc0021838 0xc002193f 0xc0027070 0xc0029e00 0xc002112f.
-The `backtrace' program can make call stacks useful.
-Read "Backtraces" in the "Debugging Tools" chapter
-of the Pintos documentation for more information.
-Timer: 146 ticks
-Thread: 0 idle ticks, 55 kernel ticks, 91 user ticks
-hda2 (filesys): 15689 reads, 210 writes
-hda3 (scratch): 102 reads, 2 writes
-Console: 14859 characters output
-Keyboard: 0 keys pressed
-Exception: 35 page faults
-Powering off...
 make[1]: Leaving directory `/afs/ir.stanford.edu/users/r/t/rtwilson/Fall_2012/CS140/project2/src/userprog/build'

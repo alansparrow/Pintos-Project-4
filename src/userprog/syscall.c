@@ -17,12 +17,12 @@
 #define MAX_ARGS 3
 #define USER_VADDR_BOTTOM ((void *) 0x08048000)
 
-struct lock filesys_lock;
 static void syscall_handler (struct intr_frame *);
 int user_to_kernel_ptr(const void *vaddr);
 void get_arg (struct intr_frame *f, int *arg, int n);
 void check_valid_ptr (const void *vaddr);
 void check_valid_buffer (void* buffer, unsigned size);
+void check_valid_string (const void* str);
 
 void
 syscall_init (void) 
@@ -52,6 +52,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_EXEC:
       {
 	get_arg(f, &arg[0], 1);
+	check_valid_string((const void *) arg[0]);
 	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
 	f->eax = exec((const char *) arg[0]); 
 	break;
@@ -65,6 +66,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_CREATE:
       {
 	get_arg(f, &arg[0], 2);
+	check_valid_string((const void *) arg[0]);
 	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
 	f->eax = create((const char *)arg[0], (unsigned) arg[1]);
 	break;
@@ -72,6 +74,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_REMOVE:
       {
 	get_arg(f, &arg[0], 1);
+	check_valid_string((const void *) arg[0]);
 	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
 	f->eax = remove((const char *) arg[0]);
 	break;
@@ -79,6 +82,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_OPEN:
       {
 	get_arg(f, &arg[0], 1);
+	check_valid_string((const void *) arg[0]);
 	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
 	f->eax = open((const char *) arg[0]);
 	break; 		
@@ -157,6 +161,7 @@ pid_t exec (const char *cmd_line)
     }
   if (cp->load == LOAD_FAIL)
     {
+      remove_child_process(cp);
       return ERROR;
     }
   return pid;
@@ -298,8 +303,6 @@ void check_valid_ptr (const void *vaddr)
 
 int user_to_kernel_ptr(const void *vaddr)
 {
-  // TO DO: Need to check if all bytes within range are correct
-  // for strings + buffers
   check_valid_ptr(vaddr);
   void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
   if (!ptr)
@@ -386,5 +389,13 @@ void check_valid_buffer (void* buffer, unsigned size)
     {
       check_valid_ptr((const void*) local_buffer);
       local_buffer++;
+    }
+}
+
+void check_valid_string (const void* str)
+{
+  while (* (char *) user_to_kernel_ptr(str) != 0)
+    {
+      str = (char *) str + 1;
     }
 }

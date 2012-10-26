@@ -135,20 +135,23 @@ process_exit (void)
   uint32_t *pd;
 
   // Close all files opened by process
+  lock_acquire(&filesys_lock);
   process_close_file(CLOSE_ALL);
+  if (cur->executable)
+    {
+      file_close(cur->executable);
+    }
+  lock_release(&filesys_lock);
 
   // Free child list
   remove_child_processes();
 
   // Set exit value to true in case killed by the kernel
-  if (thread_alive(cur->parent) && cur->cp)
+  if (thread_alive(cur->parent) && cur->cp && cur->executable)
     {
       cur->cp->exit = true;
       sema_up(&cur->cp->exit_sema);
     }
-
-  // Close executable
-  file_close(cur->executable);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -280,6 +283,7 @@ load (const char *file_name, void (**eip) (void), void **esp,
   process_activate ();
 
   /* Open executable file. */
+  lock_acquire(&filesys_lock);
   file = filesys_open (file_name);
   if (file == NULL) 
     {
@@ -372,10 +376,7 @@ load (const char *file_name, void (**eip) (void), void **esp,
 
  done:
   /* We arrive here whether the load is successful or not. */
-  if (!success)
-    {
-      file_close (file);
-    }
+  lock_release(&filesys_lock);
   return success;
 }
 
@@ -496,16 +497,17 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
   bool success = false;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  if (kpage != NULL) 
+  if (!kpage)
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-	{
-	  palloc_free_page (kpage);
-	  return success;
-	}
+      return success;
+    }
+  success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+  if (success)
+    *esp = PHYS_BASE;
+  else
+    {
+      palloc_free_page (kpage);
+      return success;
     }
 
   char *token;
