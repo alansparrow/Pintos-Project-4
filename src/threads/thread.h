@@ -5,6 +5,9 @@
 #include <list.h>
 #include <stdint.h>
 
+// Needed for timer_sleep()
+struct list sleep_list;
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -116,6 +119,9 @@ struct thread
 
     // Needed for denying writes to executables
     struct file* executable;
+
+    // Needed for timer_sleep()
+    int64_t ticks;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -156,5 +162,9 @@ int thread_get_load_avg (void);
 
 bool thread_alive (int pid);
 void release_locks (void);
+
+bool cmp_ticks (const struct list_elem *a,
+		const struct list_elem *b,
+		void *aux UNUSED);
 
 #endif /* threads/thread.h */

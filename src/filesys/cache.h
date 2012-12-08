@@ -2,10 +2,12 @@
 #define FILESYS_CACHE_H
 
 #include "devices/block.h"
+#include "devices/timer.h"
 #include "threads/synch.h"
 #include <list.h>
 
-#define MAX_FILESYS_CACHE_SIZE 128
+#define WRITE_BACK_INTERVAL 5*TIMER_FREQ
+#define MAX_FILESYS_CACHE_SIZE 64
 
 struct list filesys_cache;
 uint32_t filesys_cache_size;
@@ -26,6 +28,6 @@ struct cache_entry* filesys_cache_block_get (block_sector_t sector,
 struct cache_entry* filesys_cache_block_evict (block_sector_t sector,
 					       bool dirty);
 void filesys_cache_write_to_disk (bool halt);
-void set_cache_entry_read_flag (struct cache_entry *c);
+void thread_func_write_back (void *aux);
 
 #endif /* filesys/cache.h */

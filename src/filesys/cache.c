@@ -1,12 +1,14 @@
 #include "filesys/cache.h"
 #include "filesys/filesys.h"
 #include "threads/malloc.h"
+#include "threads/thread.h"
 
 void filesys_cache_init (void)
 {
   list_init(&filesys_cache);
   lock_init(&filesys_cache_lock);
   filesys_cache_size = 0;
+  thread_create("filesys_cache_writeback", 0, thread_func_write_back, NULL);
 }
 
 struct cache_entry* filesys_cache_block_get (block_sector_t sector,
@@ -83,7 +85,7 @@ struct cache_entry* filesys_cache_block_evict (block_sector_t sector,
     }
   c->read = true;
   c->sector = sector;
-  block_read(fs_device, sector, &c->block);
+  block_read(fs_device, c->sector, &c->block);
   c->dirty = dirty;
   c->accessed = true;
   return c;
@@ -110,4 +112,13 @@ void filesys_cache_write_to_disk (bool halt)
       e = next;
     }
   lock_release(&filesys_cache_lock);
+}
+
+void thread_func_write_back (void *aux UNUSED)
+{
+  while (true)
+    {
+      timer_sleep(WRITE_BACK_INTERVAL);
+      filesys_cache_write_to_disk(false);
+    }
 }

@@ -225,7 +225,8 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
         break;
 
       struct cache_entry *c = filesys_cache_block_get(sector_idx, false);
-      memcpy (buffer + bytes_read, &c->block + sector_ofs, chunk_size);
+      memcpy (buffer + bytes_read, (uint8_t *) &c->block + sector_ofs,
+	      chunk_size);
       c->read = false;
 
       /* Advance. */
@@ -269,7 +270,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
         break;
 
       struct cache_entry *c = filesys_cache_block_get(sector_idx, true);
-      memcpy (&c->block + sector_ofs, buffer + bytes_written, chunk_size);
+      memcpy ((uint8_t *) &c->block + sector_ofs, buffer + bytes_written,
+	      chunk_size);
       c->read = false;
 
       /* Advance. */
