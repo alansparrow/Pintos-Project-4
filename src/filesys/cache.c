@@ -11,10 +11,8 @@ void filesys_cache_init (void)
   thread_create("filesys_cache_writeback", 0, thread_func_write_back, NULL);
 }
 
-struct cache_entry* filesys_cache_block_get (block_sector_t sector,
-					     bool dirty)
+struct cache_entry* block_in_cache (block_sector_t sector)
 {
-  lock_acquire(&filesys_cache_lock);
   struct cache_entry *c;
   struct list_elem *e;
   for (e = list_begin(&filesys_cache); e != list_end(&filesys_cache);
@@ -23,12 +21,24 @@ struct cache_entry* filesys_cache_block_get (block_sector_t sector,
       c = list_entry(e, struct cache_entry, elem);
       if (c->sector == sector)
 	{
-	  c->read = true;
-	  c->dirty |= dirty;
-	  c->accessed = true;
-	  lock_release(&filesys_cache_lock);
 	  return c;
 	}
+    }
+  return NULL;
+}
+
+struct cache_entry* filesys_cache_block_get (block_sector_t sector,
+					     bool dirty)
+{
+  lock_acquire(&filesys_cache_lock);
+  struct cache_entry *c = block_in_cache(sector);
+  if (c)
+    {
+      c->read = true;
+      c->dirty |= dirty;
+      c->accessed = true;
+      lock_release(&filesys_cache_lock);
+      return c;
     }
   c = filesys_cache_block_evict(sector, dirty);
   if (!c)
@@ -121,4 +131,28 @@ void thread_func_write_back (void *aux UNUSED)
       timer_sleep(WRITE_BACK_INTERVAL);
       filesys_cache_write_to_disk(false);
     }
+}
+
+void spawn_thread_read_ahead (block_sector_t sector)
+{
+  block_sector_t *arg = malloc(sizeof(block_sector_t));
+  if (arg)
+    {
+      *arg = sector + 1;
+      thread_create("filesys_cache_readahead", 0, thread_func_read_ahead,
+      		    arg);
+    }
+}
+
+void thread_func_read_ahead (void *aux)
+{
+  block_sector_t sector = * (block_sector_t *) aux;
+  lock_acquire(&filesys_cache_lock);
+  struct cache_entry *c = block_in_cache(sector);
+  if (!c)
+    {
+      filesys_cache_block_evict(sector, false);
+    }
+  lock_release(&filesys_cache_lock);
+  free(aux);
 }
