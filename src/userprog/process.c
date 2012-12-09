@@ -49,6 +49,7 @@ process_execute (const char *file_name)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
+
   return tid;
 }
 
@@ -78,6 +79,10 @@ start_process (void *file_name_)
   else
     {
       thread_current()->cp->load = LOAD_FAIL;
+    }
+  if (!thread_current()->cwd)
+    {
+      thread_current()->cwd = dir_open_root();
     }
   sema_up(&thread_current()->cp->load_sema);
 
@@ -145,6 +150,11 @@ process_exit (void)
 
   // Free child list
   remove_child_processes();
+
+  if (thread_current()->cwd)
+    {
+      dir_close(thread_current()->cwd);
+    }
 
   // Set exit value to true in case killed by the kernel
   if (thread_alive(cur->parent) && cur->cp && cur->executable)
@@ -588,6 +598,21 @@ install_page (void *upage, void *kpage, bool writable)
 }
 
 
+int process_add_dir (struct dir *d)
+{
+  struct process_file *pf = malloc(sizeof(struct process_file));
+  if (!pf)
+    {
+      return ERROR;
+    }
+  pf->dir = d;
+  pf->isdir = true;
+  pf->fd = thread_current()->fd;
+  thread_current()->fd++;
+  list_push_back(&thread_current()->file_list, &pf->elem);
+  return pf->fd;
+}
+
 int process_add_file (struct file *f)
 {
   struct process_file *pf = malloc(sizeof(struct process_file));
@@ -596,13 +621,14 @@ int process_add_file (struct file *f)
       return ERROR;
     }
   pf->file = f;
+  pf->isdir = false;
   pf->fd = thread_current()->fd;
   thread_current()->fd++;
   list_push_back(&thread_current()->file_list, &pf->elem);
   return pf->fd;
 }
 
-struct file* process_get_file (int fd)
+struct process_file* process_get_file (int fd)
 {
   struct thread *t = thread_current();
   struct list_elem *e;
@@ -613,7 +639,7 @@ struct file* process_get_file (int fd)
           struct process_file *pf = list_entry (e, struct process_file, elem);
           if (fd == pf->fd)
 	    {
-	      return pf->file;
+	      return pf;
 	    }
         }
   return NULL;
@@ -630,7 +656,14 @@ void process_close_file (int fd)
       struct process_file *pf = list_entry (e, struct process_file, elem);
       if (fd == pf->fd || fd == CLOSE_ALL)
 	{
-	  file_close(pf->file);
+	  if (pf->isdir)
+	    {
+	      dir_close(pf->dir);
+	    }
+	  else
+	    {
+	      file_close(pf->file);
+	    }
 	  list_remove(&pf->elem);
 	  free(pf);
 	  if (fd != CLOSE_ALL)

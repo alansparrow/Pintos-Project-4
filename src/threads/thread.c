@@ -4,6 +4,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include "filesys/directory.h"
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -104,6 +105,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  initial_thread->cwd = NULL;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -216,6 +218,14 @@ thread_create (const char *name, int priority,
   t->parent = thread_tid();
   struct child_process *cp = add_child_process(t->tid);
   t->cp = cp;
+  if (thread_current()->cwd)
+    {
+      t->cwd = dir_reopen(thread_current()->cwd);
+    }
+  else
+    {
+      t->cwd = NULL;
+    }
 
   /* Add to run queue. */
   thread_unblock (t);

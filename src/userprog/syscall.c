@@ -4,6 +4,8 @@
 #include <user/syscall.h>
 #include "devices/input.h"
 #include "devices/shutdown.h"
+#include "filesys/directory.h"
+#include "filesys/inode.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/interrupt.h"
@@ -128,7 +130,114 @@ syscall_handler (struct intr_frame *f UNUSED)
 	close(arg[0]);
 	break;
       }
+    case SYS_CHDIR:
+      {
+	get_arg(f, &arg[0], 1);
+	check_valid_string((const void *) arg[0]);
+	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
+	f->eax = chdir((const char *) arg[0]);
+	break;
+      }
+    case SYS_MKDIR:
+      {
+	get_arg(f, &arg[0], 1);
+	check_valid_string((const void *) arg[0]);
+	arg[0] = user_to_kernel_ptr((const void *) arg[0]);
+	f->eax = mkdir((const char *) arg[0]);
+	break;
+      }
+    case SYS_READDIR:
+      {
+	get_arg(f, &arg[0], 2);
+	check_valid_string((const void *) arg[1]);
+	arg[1] = user_to_kernel_ptr((const void *) arg[1]);
+	f->eax = readdir(arg[0], (char *) arg[1]);
+	break;
+      }
+    case SYS_ISDIR:
+      {
+	get_arg(f, &arg[0], 1);
+	f->eax = isdir(arg[0]);
+	break;
+      }
+    case SYS_INUMBER:
+      {
+	get_arg(f, &arg[0], 1);
+	f->eax = inumber(arg[0]);
+	break;
+      }
     }
+}
+
+bool chdir (const char* dir)
+{
+  return false;
+}
+
+bool mkdir (const char* dir)
+{
+  lock_acquire(&filesys_lock);
+  bool success = filesys_create(dir, 0, true);
+  lock_release(&filesys_lock);
+  return success;
+}
+
+bool readdir (int fd, char* name)
+{
+  lock_acquire(&filesys_lock);
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
+    {
+      lock_release(&filesys_lock);
+      return false;
+    }
+  if (!pf->isdir)
+    {
+      lock_release(&filesys_lock);
+      return false;
+    }
+  if (!dir_readdir(pf->dir, name))
+    {
+      lock_release(&filesys_lock);
+      return false;
+    }
+  lock_release(&filesys_lock);
+  return true;
+}
+
+bool isdir (int fd)
+{
+  lock_acquire(&filesys_lock);
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
+    {
+      lock_release(&filesys_lock);
+      return ERROR;
+    }
+  lock_release(&filesys_lock);
+  return pf->isdir;
+}
+
+int inumber (int fd)
+{
+  lock_acquire(&filesys_lock);
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
+    {
+      lock_release(&filesys_lock);
+      return ERROR;
+    }
+  block_sector_t inumber;
+  if (pf->isdir)
+    {
+      inumber = inode_get_inumber(dir_get_inode(pf->dir));
+    }
+  else
+    {
+      inumber = inode_get_inumber(file_get_inode(pf->file));
+    }
+  lock_release(&filesys_lock);
+  return inumber;
 }
 
 void halt (void)
@@ -175,7 +284,7 @@ int wait (pid_t pid)
 bool create (const char *file, unsigned initial_size)
 {
   lock_acquire(&filesys_lock);
-  bool success = filesys_create(file, initial_size);
+  bool success = filesys_create(file, initial_size, false);
   lock_release(&filesys_lock);
   return success;
 }
@@ -205,13 +314,18 @@ int open (const char *file)
 int filesize (int fd)
 {
   lock_acquire(&filesys_lock);
-  struct file *f = process_get_file(fd);
-  if (!f)
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
     {
       lock_release(&filesys_lock);
       return ERROR;
     }
-  int size = file_length(f);
+  if (pf->isdir)
+    {
+      lock_release(&filesys_lock);
+      return ERROR;
+    }
+  int size = file_length(pf->file);
   lock_release(&filesys_lock);
   return size;
 }
@@ -229,13 +343,18 @@ int read (int fd, void *buffer, unsigned size)
       return size;
     }
   lock_acquire(&filesys_lock);
-  struct file *f = process_get_file(fd);
-  if (!f)
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
     {
       lock_release(&filesys_lock);
       return ERROR;
     }
-  int bytes = file_read(f, buffer, size);
+  if (pf->isdir)
+    {
+      lock_release(&filesys_lock);
+      return ERROR;
+    }
+  int bytes = file_read(pf->file, buffer, size);
   lock_release(&filesys_lock);
   return bytes;
 }
@@ -248,13 +367,18 @@ int write (int fd, const void *buffer, unsigned size)
       return size;
     }
   lock_acquire(&filesys_lock);
-  struct file *f = process_get_file(fd);
-  if (!f)
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
     {
       lock_release(&filesys_lock);
       return ERROR;
     }
-  int bytes = file_write(f, buffer, size);
+  if (pf->isdir)
+    {
+      lock_release(&filesys_lock);
+      return ERROR;
+    }
+  int bytes = file_write(pf->file, buffer, size);
   lock_release(&filesys_lock);
   return bytes;
 }
@@ -262,26 +386,36 @@ int write (int fd, const void *buffer, unsigned size)
 void seek (int fd, unsigned position)
 {
   lock_acquire(&filesys_lock);
-  struct file *f = process_get_file(fd);
-  if (!f)
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
     {
       lock_release(&filesys_lock);
       return;
     }
-  file_seek(f, position);
+  if (pf->isdir)
+    {
+      lock_release(&filesys_lock);
+      return;
+    }
+  file_seek(pf->file, position);
   lock_release(&filesys_lock);
 }
 
 unsigned tell (int fd)
 {
   lock_acquire(&filesys_lock);
-  struct file *f = process_get_file(fd);
-  if (!f)
+  struct process_file *pf = process_get_file(fd);
+  if (!pf)
     {
       lock_release(&filesys_lock);
       return ERROR;
     }
-  off_t offset = file_tell(f);
+  if (pf->isdir)
+    {
+      lock_release(&filesys_lock);
+      return ERROR;
+    }
+  off_t offset = file_tell(pf->file);
   lock_release(&filesys_lock);
   return offset;
 }

@@ -122,6 +122,8 @@ struct thread
 
     // Needed for timer_sleep()
     int64_t ticks;
+    
+    struct dir *cwd;
   };
 
 /* If false (default), use round-robin scheduler.

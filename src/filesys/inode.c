@@ -34,8 +34,10 @@ struct inode_disk
     uint32_t direct_index;
     uint32_t indirect_index;
     uint32_t double_indirect_index;
-    uint32_t unused[109];               /* Not used. */
-    uint32_t ptr[INODE_BLOCK_PTRS];     /* Pointers to blocks */
+    uint32_t isdir;
+    block_sector_t parent;
+    uint32_t unused[107];                     /* Not used. */
+    block_sector_t ptr[INODE_BLOCK_PTRS];     /* Pointers to blocks */
   };
 
 struct indirect_block
@@ -45,8 +47,14 @@ struct indirect_block
 
 bool inode_alloc (struct inode_disk *disk_inode);
 void inode_expand (struct inode *inode, off_t new_length);
-size_t inode_expand_indirect_block (struct inode *node,
+size_t inode_expand_indirect_block (struct inode *inode,
 				    size_t new_data_sectors);
+size_t inode_expand_double_indirect_block (struct inode *inode,
+					   size_t new_data_sectors);
+size_t inode_expand_double_indirect_block_lvl_two (struct inode *inode,
+				       size_t new_data_sectors,
+				       struct indirect_block *outer_block);
+
 void inode_dealloc (struct inode *inode);
 void inode_dealloc_indirect_block (block_sector_t *ptr, size_t data_ptrs);
 void inode_dealloc_double_indirect_block (block_sector_t *ptr,
@@ -94,6 +102,8 @@ struct inode
     size_t direct_index;
     size_t indirect_index;
     size_t double_indirect_index;
+    bool isdir;
+    block_sector_t parent;
     block_sector_t ptr[INODE_BLOCK_PTRS];  /* Pointers to blocks */
   };
 
@@ -157,7 +167,7 @@ inode_init (void)
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
 bool
-inode_create (block_sector_t sector, off_t length)
+inode_create (block_sector_t sector, off_t length, bool isdir)
 {
   struct inode_disk *disk_inode = NULL;
   bool success = false;
@@ -177,6 +187,7 @@ inode_create (block_sector_t sector, off_t length)
 	  disk_inode->length = MAX_FILE_SIZE;
 	}
       disk_inode->magic = INODE_MAGIC;
+      disk_inode->isdir = isdir;
       if (inode_alloc(disk_inode)) 
         {
           block_write (fs_device, sector, disk_inode);
@@ -225,6 +236,7 @@ inode_open (block_sector_t sector)
   inode->direct_index = data.direct_index;
   inode->indirect_index = data.indirect_index;
   inode->double_indirect_index = data.double_indirect_index;
+  inode->isdir = data.isdir;
   memcpy(&inode->ptr, &data.ptr, INODE_BLOCK_PTRS*sizeof(block_sector_t));
   return inode;
 }
@@ -509,13 +521,70 @@ void inode_expand (struct inode *inode, off_t new_length)
     }
   if (inode->direct_index == DOUBLE_INDIRECT_INDEX)
     {
-      // inode_expand_double_indirect_block(inode, new_data_sectors);
+      new_data_sectors = inode_expand_double_indirect_block(inode,
+							    new_data_sectors);
+    }
+}
+
+size_t inode_expand_double_indirect_block (struct inode *inode,
+					   size_t new_data_sectors)
+{
+  struct indirect_block block;
+  if (inode->double_indirect_index == 0 && inode->indirect_index == 0)
+    {
+      free_map_allocate(1, &inode->ptr[inode->direct_index]);
+    }
+  else
+    {
+      block_read(fs_device, inode->ptr[inode->direct_index], &block);
+    }
+  while (inode->indirect_index < INDIRECT_BLOCK_PTRS)
+    {
+      new_data_sectors = inode_expand_double_indirect_block_lvl_two(inode,
+					     new_data_sectors, &block);
       if (new_data_sectors == 0)
 	{
-	  inode->length = new_length;
-	  return;
+	  break;
 	}
     }
+  block_write(fs_device, inode->ptr[inode->direct_index], &block);
+  return new_data_sectors;
+}
+
+size_t inode_expand_double_indirect_block_lvl_two (struct inode *inode,
+					   size_t new_data_sectors,
+					   struct indirect_block* outer_block)
+{
+  static char zeros[BLOCK_SECTOR_SIZE];
+  struct indirect_block inner_block;
+  if (inode->double_indirect_index == 0)
+    {
+      free_map_allocate(1, &outer_block->ptr[inode->indirect_index]);
+    }
+  else
+    {
+      block_read(fs_device, outer_block->ptr[inode->indirect_index],
+		 &inner_block);
+    }
+  while (inode->double_indirect_index < INDIRECT_BLOCK_PTRS)
+    {
+      free_map_allocate(1, &inner_block.ptr[inode->double_indirect_index]);
+      block_write(fs_device, inner_block.ptr[inode->double_indirect_index],
+		  zeros);
+      inode->double_indirect_index++;
+      new_data_sectors--;
+      if (new_data_sectors == 0)
+	{
+	  break;
+	}
+    }
+  block_write(fs_device, outer_block->ptr[inode->indirect_index], &inner_block);
+  if (inode->double_indirect_index == INDIRECT_BLOCK_PTRS)
+    {
+      inode->double_indirect_index = 0;
+      inode->indirect_index++;
+    }
+  return new_data_sectors;
 }
 
 size_t inode_expand_indirect_block (struct inode *inode,
@@ -566,4 +635,9 @@ bool inode_alloc (struct inode_disk *disk_inode)
   memcpy(&disk_inode->ptr, &inode.ptr,
 	 INODE_BLOCK_PTRS*sizeof(block_sector_t));
   return true;
+}
+
+bool inode_is_dir (const struct inode *inode)
+{
+  return inode->isdir;
 }
