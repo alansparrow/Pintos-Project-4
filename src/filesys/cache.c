@@ -34,7 +34,7 @@ struct cache_entry* filesys_cache_block_get (block_sector_t sector,
   struct cache_entry *c = block_in_cache(sector);
   if (c)
     {
-      c->read = true;
+      c->open_cnt++;
       c->dirty |= dirty;
       c->accessed = true;
       lock_release(&filesys_cache_lock);
@@ -62,6 +62,7 @@ struct cache_entry* filesys_cache_block_evict (block_sector_t sector,
 	  return NULL;
 	}
       list_push_back(&filesys_cache, &c->elem);
+      c->open_cnt = 0;
     }
   else
     {
@@ -73,7 +74,7 @@ struct cache_entry* filesys_cache_block_evict (block_sector_t sector,
 	       e = list_next(e))
 	    {
 	      c = list_entry(e, struct cache_entry, elem);
-	      if (c->read)
+	      if (c->open_cnt > 0)
 		{
 		  continue;
 		}
@@ -93,7 +94,7 @@ struct cache_entry* filesys_cache_block_evict (block_sector_t sector,
 	    }
 	}
     }
-  c->read = true;
+  c->open_cnt++;
   c->sector = sector;
   block_read(fs_device, c->sector, &c->block);
   c->dirty = dirty;
