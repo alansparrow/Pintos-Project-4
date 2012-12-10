@@ -643,3 +643,8 @@ bool inode_is_dir (const struct inode *inode)
 {
   return inode->isdir;
 }
+
+int inode_get_open_cnt (const struct inode *inode)
+{
+  return inode->open_cnt;
+}

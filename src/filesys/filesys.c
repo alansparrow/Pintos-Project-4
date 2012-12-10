@@ -77,9 +77,19 @@ filesys_create (const char *name, off_t initial_size, bool isdir)
 struct file *
 filesys_open (const char *name)
 {
+  if (strlen(name) == 0)
+    {
+      return NULL;
+    }
   struct dir* dir = get_containing_dir(name);
   char* file_name = get_filename(name);
   struct inode *inode = NULL;
+
+  if (dir_is_root(dir) && strlen(file_name) == 0)
+    {
+      free(file_name);
+      return (struct file *) dir;
+    }
 
   if (dir != NULL)
     dir_lookup (dir, file_name, &inode);
@@ -93,7 +103,7 @@ filesys_open (const char *name)
 
   if (inode_is_dir(inode))
     {
-      return dir_open(inode);
+      return (struct file *) dir_open(inode);
     }
   return file_open (inode);
 }
@@ -151,11 +161,6 @@ struct dir* get_containing_dir (const char* path)
 {
   char s[strlen(path) + 1];
   memcpy(s, path, strlen(path) + 1);
-
-  if (strlen(path) > 0 && s[strlen(path) - 1] == ASCII_SLASH)
-    {
-      return NULL;
-    }
 
   struct dir* dir;
   if (s[0] == ASCII_SLASH || !thread_current()->cwd)
