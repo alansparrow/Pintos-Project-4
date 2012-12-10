@@ -34,7 +34,7 @@ struct inode_disk
     uint32_t direct_index;
     uint32_t indirect_index;
     uint32_t double_indirect_index;
-    uint32_t isdir;
+    bool isdir;
     block_sector_t parent;
     uint32_t unused[107];                     /* Not used. */
     block_sector_t ptr[INODE_BLOCK_PTRS];     /* Pointers to blocks */
@@ -287,6 +287,8 @@ inode_close (struct inode *inode)
 	    .direct_index = inode->direct_index,
 	    .indirect_index = inode->indirect_index,
 	    .double_indirect_index = inode->double_indirect_index,
+	    .isdir = inode->isdir,
+	    .parent = inode->parent,
 	  };
 	  memcpy(&disk_inode.ptr, &inode->ptr,
 		 INODE_BLOCK_PTRS*sizeof(block_sector_t));

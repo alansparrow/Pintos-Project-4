@@ -10,6 +10,8 @@
 #include "threads/thread.h"
 #include "threads/malloc.h"
 
+#define ASCII_SLASH 47
+
 /* Partition that contains the file system. */
 struct block *fs_device;
 
@@ -120,8 +122,13 @@ struct dir* get_containing_dir (const char* path)
   char s[strlen(path) + 1];
   memcpy(s, path, strlen(path) + 1);
 
+  if (strlen(path) > 0 && s[strlen(path) - 1] == ASCII_SLASH)
+    {
+      return NULL;
+    }
+
   struct dir* dir;
-  if (s == "/" || !thread_current()->cwd)
+  if (s[0] == ASCII_SLASH || !thread_current()->cwd)
     {
       dir = dir_open_root();
     }
@@ -130,34 +137,33 @@ struct dir* get_containing_dir (const char* path)
       dir = dir_reopen(thread_current()->cwd);
     }
 
-  char *token, *save_ptr;
-  for (token = strtok_r(s, "/", &save_ptr); token != NULL;
-       token = strtok_r (NULL, "/", &save_ptr))
+  char *save_ptr, *next_token, *token = strtok_r(s, "/", &save_ptr);
+  if (token)
     {
-      if (strcmp(token, ".") == 0)
+      next_token = strtok_r(NULL, "/", &save_ptr);
+    }
+  else
+    {
+      next_token = NULL;
+    }
+  while (next_token != NULL)
+    {
+      struct inode *inode;
+      if (!dir_lookup(dir, token, &inode))
 	{
-	  continue;
+	  return NULL;
 	}
-      else if (strcmp(token, "..") == 0)
+      if (inode_is_dir(inode))
 	{
-	  /* Get parent */
+	  dir_close(dir);
+	  dir = dir_open(inode);
 	}
       else
 	{
-	  struct inode *inode;
-	  if (dir_lookup(dir, token, &inode))
-	    {
-	      if (inode_is_dir(inode))
-		{
-		  dir_close(dir);
-		  dir = dir_open(inode);
-		}
-	      else
-		{
-		  inode_close(inode);
-		}
-	    }
+	  inode_close(inode);
 	}
+      token = next_token;
+      next_token = strtok_r(NULL, "/", &save_ptr);
     }
   return dir;
 }

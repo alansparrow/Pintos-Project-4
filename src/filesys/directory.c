@@ -19,7 +19,6 @@ struct dir_entry
     block_sector_t inode_sector;        /* Sector number of header. */
     char name[NAME_MAX + 1];            /* Null terminated file name. */
     bool in_use;                        /* In use or free? */
-    bool isdir;
   };
 
 /* Creates a directory with space for ENTRY_CNT entries in the
