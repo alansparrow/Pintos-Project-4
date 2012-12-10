@@ -158,6 +158,12 @@ dir_add (struct dir *dir, const char *name, block_sector_t inode_sector)
   if (lookup (dir, name, NULL, NULL))
     goto done;
 
+  if (!inode_add_parent(inode_get_inumber(dir_get_inode(dir)),
+			inode_sector))
+    {
+      goto done;
+    }
+
   /* Set OFS to offset of free slot.
      If there are no free slots, then it will be set to the
      current end-of-file.
@@ -272,4 +278,12 @@ bool dir_is_root (struct dir* dir)
       return true;
     }
   return false;
+}
+
+bool dir_get_parent (struct dir* dir, struct inode **inode)
+{
+
+  block_sector_t sector = inode_get_parent(dir_get_inode(dir));
+  *inode = inode_open (sector);
+  return *inode != NULL;
 }

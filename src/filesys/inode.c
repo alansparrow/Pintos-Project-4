@@ -188,6 +188,7 @@ inode_create (block_sector_t sector, off_t length, bool isdir)
 	}
       disk_inode->magic = INODE_MAGIC;
       disk_inode->isdir = isdir;
+      disk_inode->parent = ROOT_DIR_SECTOR;
       if (inode_alloc(disk_inode)) 
         {
           block_write (fs_device, sector, disk_inode);
@@ -237,6 +238,7 @@ inode_open (block_sector_t sector)
   inode->indirect_index = data.indirect_index;
   inode->double_indirect_index = data.double_indirect_index;
   inode->isdir = data.isdir;
+  inode->parent = data.parent;
   memcpy(&inode->ptr, &data.ptr, INODE_BLOCK_PTRS*sizeof(block_sector_t));
   return inode;
 }
@@ -647,4 +649,22 @@ bool inode_is_dir (const struct inode *inode)
 int inode_get_open_cnt (const struct inode *inode)
 {
   return inode->open_cnt;
+}
+
+block_sector_t inode_get_parent (const struct inode *inode)
+{
+  return inode->parent;
+}
+
+bool inode_add_parent (block_sector_t parent_sector,
+		       block_sector_t child_sector)
+{
+  struct inode* inode = inode_open(child_sector);
+  if (!inode)
+    {
+      return false;
+    }
+  inode->parent = parent_sector;
+  inode_close(inode);
+  return true;
 }
