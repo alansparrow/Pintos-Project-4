@@ -86,6 +86,15 @@ filesys_open (const char *name)
   dir_close (dir);
   free(file_name);
 
+  if (!inode)
+    {
+      return NULL;
+    }
+
+  if (inode_is_dir(inode))
+    {
+      return dir_open(inode);
+    }
   return file_open (inode);
 }
 
@@ -115,6 +124,27 @@ do_format (void)
     PANIC ("root directory creation failed");
   free_map_close ();
   printf ("done.\n");
+}
+
+bool filesys_chdir (const char* name)
+{
+  struct dir* dir = get_containing_dir(name);
+  char* file_name = get_filename(name);
+  struct inode *inode = NULL;
+
+  if (dir != NULL)
+    dir_lookup (dir, file_name, &inode);
+  dir_close (dir);
+  free(file_name);
+
+  dir = dir_open (inode);
+  if (dir)
+    {
+      dir_close(thread_current()->cwd);
+      thread_current()->cwd = dir;
+      return true;
+    }
+  return false;
 }
 
 struct dir* get_containing_dir (const char* path)

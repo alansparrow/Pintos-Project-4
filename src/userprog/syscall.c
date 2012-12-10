@@ -171,7 +171,10 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 bool chdir (const char* dir)
 {
-  return false;
+  lock_acquire(&filesys_lock);
+  bool success = filesys_chdir(dir);
+  lock_release(&filesys_lock);
+  return success;
 }
 
 bool mkdir (const char* dir)
@@ -306,7 +309,15 @@ int open (const char *file)
       lock_release(&filesys_lock);
       return ERROR;
     }
-  int fd = process_add_file(f);
+  int fd;
+  if (inode_is_dir(file_get_inode(f)))
+    {
+      fd = process_add_dir((struct dir *) f);
+    }
+  else
+    {
+      fd = process_add_file(f);
+    }
   lock_release(&filesys_lock);
   return fd;
 }
