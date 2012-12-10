@@ -46,7 +46,7 @@ struct indirect_block
   };
 
 bool inode_alloc (struct inode_disk *disk_inode);
-void inode_expand (struct inode *inode, off_t new_length);
+off_t inode_expand (struct inode *inode, off_t new_length);
 size_t inode_expand_indirect_block (struct inode *inode,
 				    size_t new_data_sectors);
 size_t inode_expand_double_indirect_block (struct inode *inode,
@@ -113,10 +113,10 @@ struct inode
    Returns -1 if INODE does not contain data for a byte at offset
    POS. */
 static block_sector_t
-byte_to_sector (const struct inode *inode, off_t pos) 
+byte_to_sector (const struct inode *inode, off_t length, off_t pos) 
 {
   ASSERT (inode != NULL);
-  if (pos < inode->length)
+  if (pos < length)
     {
       uint32_t idx;
       uint32_t indirect_block[INDIRECT_BLOCK_PTRS];
@@ -320,7 +320,9 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   uint8_t *buffer = buffer_;
   off_t bytes_read = 0;
 
-  if (offset >= inode_length(inode))
+  off_t length = inode_length(inode);
+
+  if (offset >= length)
     {
       return bytes_read;
     }
@@ -328,11 +330,11 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   while (size > 0) 
     {
       /* Disk sector to read, starting byte offset within sector. */
-      block_sector_t sector_idx = byte_to_sector (inode, offset);
+      block_sector_t sector_idx = byte_to_sector (inode, length, offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
-      off_t inode_left = inode_length (inode) - offset;
+      off_t inode_left = length - offset;
       int sector_left = BLOCK_SECTOR_SIZE - sector_ofs;
       int min_left = inode_left < sector_left ? inode_left : sector_left;
 
@@ -370,13 +372,15 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   if (inode->deny_write_cnt)
     return 0;
 
-  if (offset + size > inode_length(inode))
+  off_t length = inode_length(inode);
+
+  if (offset + size > length)
     {
       if (!inode->isdir)
 	{
 	  inode_lock(inode);
 	}
-      inode_expand(inode, offset + size);
+      length = inode_expand(inode, offset + size);
       if (!inode->isdir)
 	{
 	  inode_unlock(inode);
@@ -386,11 +390,11 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   while (size > 0) 
     {
       /* Sector to write, starting byte offset within sector. */
-      block_sector_t sector_idx = byte_to_sector (inode, offset);
+      block_sector_t sector_idx = byte_to_sector (inode, length, offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
-      off_t inode_left = inode_length (inode) - offset;
+      off_t inode_left = length - offset;
       int sector_left = BLOCK_SECTOR_SIZE - sector_ofs;
       int min_left = inode_left < sector_left ? inode_left : sector_left;
 
@@ -410,6 +414,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       bytes_written += chunk_size;
     }
 
+  inode->length = length;
   return bytes_written;
 }
 
@@ -500,7 +505,7 @@ void inode_dealloc_indirect_block (block_sector_t *ptr,
   free_map_release(*ptr, 1);
 }
 
-void inode_expand (struct inode *inode, off_t new_length)
+off_t inode_expand (struct inode *inode, off_t new_length)
 {
   static char zeros[BLOCK_SECTOR_SIZE];
   size_t new_data_sectors = bytes_to_data_sectors(new_length) - \
@@ -508,8 +513,7 @@ void inode_expand (struct inode *inode, off_t new_length)
   
   if (new_data_sectors == 0)
     {
-      inode->length = new_length;
-      return;
+      return new_length;
     }
 
   while (inode->direct_index < INDIRECT_INDEX)
@@ -520,8 +524,7 @@ void inode_expand (struct inode *inode, off_t new_length)
       new_data_sectors--;
       if (new_data_sectors == 0)
 	{
-	  inode->length = new_length;
-	  return;
+	  return new_length;
 	}
     }
   while (inode->direct_index < DOUBLE_INDIRECT_INDEX)
@@ -529,8 +532,7 @@ void inode_expand (struct inode *inode, off_t new_length)
       new_data_sectors = inode_expand_indirect_block(inode, new_data_sectors);
       if (new_data_sectors == 0)
 	{
-	  inode->length = new_length;
-	  return;
+	  return new_length;
 	}
     }
   if (inode->direct_index == DOUBLE_INDIRECT_INDEX)
@@ -538,6 +540,7 @@ void inode_expand (struct inode *inode, off_t new_length)
       new_data_sectors = inode_expand_double_indirect_block(inode,
 							    new_data_sectors);
     }
+  return new_length - new_data_sectors*BLOCK_SECTOR_SIZE;
 }
 
 size_t inode_expand_double_indirect_block (struct inode *inode,
