@@ -104,6 +104,7 @@ struct inode
     size_t double_indirect_index;
     bool isdir;
     block_sector_t parent;
+    struct lock lock;
     block_sector_t ptr[INODE_BLOCK_PTRS];  /* Pointers to blocks */
   };
 
@@ -231,6 +232,7 @@ inode_open (block_sector_t sector)
   inode->open_cnt = 1;
   inode->deny_write_cnt = 0;
   inode->removed = false;
+  lock_init(&inode->lock);
   struct inode_disk data;
   block_read(fs_device, inode->sector, &data);
   inode->length = data.length;
@@ -667,4 +669,14 @@ bool inode_add_parent (block_sector_t parent_sector,
   inode->parent = parent_sector;
   inode_close(inode);
   return true;
+}
+
+void inode_lock (const struct inode *inode)
+{
+  lock_acquire(&inode->lock);
+}
+
+void inode_unlock (const struct inode *inode)
+{
+  lock_release(&inode->lock);
 }

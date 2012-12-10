@@ -171,53 +171,39 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 bool chdir (const char* dir)
 {
-  lock_acquire(&filesys_lock);
-  bool success = filesys_chdir(dir);
-  lock_release(&filesys_lock);
-  return success;
+  return filesys_chdir(dir);
 }
 
 bool mkdir (const char* dir)
 {
-  lock_acquire(&filesys_lock);
-  bool success = filesys_create(dir, 0, true);
-  lock_release(&filesys_lock);
-  return success;
+  return filesys_create(dir, 0, true);
 }
 
 bool readdir (int fd, char* name)
 {
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return false;
     }
   if (!pf->isdir)
     {
-      lock_release(&filesys_lock);
       return false;
     }
   if (!dir_readdir(pf->dir, name))
     {
-      lock_release(&filesys_lock);
       return false;
     }
-  lock_release(&filesys_lock);
   return true;
 }
 
 bool isdir (int fd)
 {
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
-  lock_release(&filesys_lock);
   return pf->isdir;
 }
 

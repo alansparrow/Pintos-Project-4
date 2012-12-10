@@ -24,5 +24,7 @@ int inode_get_open_cnt (const struct inode *inode);
 block_sector_t inode_get_parent (const struct inode *inode);
 bool inode_add_parent (block_sector_t parent_sector,
 		       block_sector_t child_sector);
+void inode_lock (const struct inode *inode);
+void inode_unlock (const struct inode *inode);
 
 #endif /* filesys/inode.h */
