@@ -10,8 +10,6 @@
 #define LOAD_SUCCESS 1
 #define LOAD_FAIL 2
 
-struct lock filesys_lock;
-
 struct child_process {
   int pid;
   int load;

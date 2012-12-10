@@ -29,7 +29,6 @@ void check_valid_string (const void* str);
 void
 syscall_init (void) 
 {
-  lock_init(&filesys_lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -209,11 +208,9 @@ bool isdir (int fd)
 
 int inumber (int fd)
 {
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   block_sector_t inumber;
@@ -225,7 +222,6 @@ int inumber (int fd)
     {
       inumber = inode_get_inumber(file_get_inode(pf->file));
     }
-  lock_release(&filesys_lock);
   return inumber;
 }
 
@@ -272,27 +268,19 @@ int wait (pid_t pid)
 
 bool create (const char *file, unsigned initial_size)
 {
-  lock_acquire(&filesys_lock);
-  bool success = filesys_create(file, initial_size, false);
-  lock_release(&filesys_lock);
-  return success;
+  return filesys_create(file, initial_size, false);
 }
 
 bool remove (const char *file)
 {
-  lock_acquire(&filesys_lock);
-  bool success = filesys_remove(file);
-  lock_release(&filesys_lock);
-  return success;
+  return filesys_remove(file);
 }
 
 int open (const char *file)
 {
-  lock_acquire(&filesys_lock);
   struct file *f = filesys_open(file);
   if (!f)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   int fd;
@@ -304,26 +292,21 @@ int open (const char *file)
     {
       fd = process_add_file(f);
     }
-  lock_release(&filesys_lock);
   return fd;
 }
 
 int filesize (int fd)
 {
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   if (pf->isdir)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   int size = file_length(pf->file);
-  lock_release(&filesys_lock);
   return size;
 }
 
@@ -339,20 +322,16 @@ int read (int fd, void *buffer, unsigned size)
 	}
       return size;
     }
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   if (pf->isdir)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   int bytes = file_read(pf->file, buffer, size);
-  lock_release(&filesys_lock);
   return bytes;
 }
 
@@ -363,65 +342,51 @@ int write (int fd, const void *buffer, unsigned size)
       putbuf(buffer, size);
       return size;
     }
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   if (pf->isdir)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   int bytes = file_write(pf->file, buffer, size);
-  lock_release(&filesys_lock);
   return bytes;
 }
 
 void seek (int fd, unsigned position)
 {
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return;
     }
   if (pf->isdir)
     {
-      lock_release(&filesys_lock);
       return;
     }
   file_seek(pf->file, position);
-  lock_release(&filesys_lock);
 }
 
 unsigned tell (int fd)
 {
-  lock_acquire(&filesys_lock);
   struct process_file *pf = process_get_file(fd);
   if (!pf)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   if (pf->isdir)
     {
-      lock_release(&filesys_lock);
       return ERROR;
     }
   off_t offset = file_tell(pf->file);
-  lock_release(&filesys_lock);
   return offset;
 }
 
 void close (int fd)
 {
-  lock_acquire(&filesys_lock);
   process_close_file(fd);
-  lock_release(&filesys_lock);
 }
 
 void check_valid_ptr (const void *vaddr)

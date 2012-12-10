@@ -18,7 +18,7 @@ struct cache_entry {
   block_sector_t sector;
   bool dirty;
   bool accessed;
-  bool read;
+  int open_cnt;
   struct list_elem elem;
 };
 
