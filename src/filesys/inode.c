@@ -372,7 +372,15 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 
   if (offset + size > inode_length(inode))
     {
+      if (!inode->isdir)
+	{
+	  inode_lock(inode);
+	}
       inode_expand(inode, offset + size);
+      if (!inode->isdir)
+	{
+	  inode_unlock(inode);
+	}
     }
 
   while (size > 0) 
@@ -673,10 +681,10 @@ bool inode_add_parent (block_sector_t parent_sector,
 
 void inode_lock (const struct inode *inode)
 {
-  lock_acquire(&inode->lock);
+  lock_acquire(&((struct inode *)inode)->lock);
 }
 
 void inode_unlock (const struct inode *inode)
 {
-  lock_release(&inode->lock);
+  lock_release(&((struct inode *) inode)->lock);
 }
