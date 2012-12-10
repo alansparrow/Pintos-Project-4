@@ -23,7 +23,7 @@
 #define INODE_BLOCK_PTRS 14
 
 /* 8 megabyte file size limit */
-#define MAX_FILE_SIZE (1 << 23) 
+#define MAX_FILE_SIZE 8980480
 
 /* On-disk inode.
    Must be exactly BLOCK_SECTOR_SIZE bytes long. */
@@ -99,6 +99,7 @@ struct inode
     bool removed;                       /* True if deleted, false otherwise. */
     int deny_write_cnt;                 /* 0: writes ok, >0: deny writes. */
     off_t length;                       /* File size in bytes. */
+    off_t read_length;
     size_t direct_index;
     size_t indirect_index;
     size_t double_indirect_index;
@@ -236,6 +237,7 @@ inode_open (block_sector_t sector)
   struct inode_disk data;
   block_read(fs_device, inode->sector, &data);
   inode->length = data.length;
+  inode->read_length = data.length;
   inode->direct_index = data.direct_index;
   inode->indirect_index = data.indirect_index;
   inode->double_indirect_index = data.double_indirect_index;
@@ -320,7 +322,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
   uint8_t *buffer = buffer_;
   off_t bytes_read = 0;
 
-  off_t length = inode_length(inode);
+  off_t length = inode->read_length;
 
   if (offset >= length)
     {
@@ -346,6 +348,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
       struct cache_entry *c = filesys_cache_block_get(sector_idx, false);
       memcpy (buffer + bytes_read, (uint8_t *) &c->block + sector_ofs,
 	      chunk_size);
+      c->accessed = true;
       c->open_cnt--;
 
       /* Advance. */
@@ -372,15 +375,13 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   if (inode->deny_write_cnt)
     return 0;
 
-  off_t length = inode_length(inode);
-
-  if (offset + size > length)
+  if (offset + size > inode_length(inode))
     {
       if (!inode->isdir)
 	{
 	  inode_lock(inode);
 	}
-      length = inode_expand(inode, offset + size);
+      inode->length = inode_expand(inode, offset + size);
       if (!inode->isdir)
 	{
 	  inode_unlock(inode);
@@ -390,11 +391,13 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
   while (size > 0) 
     {
       /* Sector to write, starting byte offset within sector. */
-      block_sector_t sector_idx = byte_to_sector (inode, length, offset);
+      block_sector_t sector_idx = byte_to_sector (inode,
+						  inode_length(inode),
+						  offset);
       int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
       /* Bytes left in inode, bytes left in sector, lesser of the two. */
-      off_t inode_left = length - offset;
+      off_t inode_left = inode_length(inode) - offset;
       int sector_left = BLOCK_SECTOR_SIZE - sector_ofs;
       int min_left = inode_left < sector_left ? inode_left : sector_left;
 
@@ -406,6 +409,8 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       struct cache_entry *c = filesys_cache_block_get(sector_idx, true);
       memcpy ((uint8_t *) &c->block + sector_ofs, buffer + bytes_written,
 	      chunk_size);
+      c->accessed = true;
+      c->dirty = true;
       c->open_cnt--;
 
       /* Advance. */
@@ -414,7 +419,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
       bytes_written += chunk_size;
     }
 
-  inode->length = length;
+  inode->read_length = inode_length(inode);
   return bytes_written;
 }
 
